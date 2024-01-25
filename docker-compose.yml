@@ -1,0 +1,55 @@
+version: '3.8'
+services:
+  mysql_server:
+    image: mysql:8.1.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: blog
+      MYSQL_USER: db-user
+      MYSQL_PASSWORD: testpass
+    ports:
+      - 3306:3306
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - "./script/schema.sql:/docker-entrypoint-initdb.d/1.sql"
+      - "./script/data.sql:/docker-entrypoint-initdb.d/2.sql"
+    networks:
+      - app-network
+
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql_server
+    depends_on:
+      - mysql_server
+    networks:
+      - app-network
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
+    environment:
+      NODE_ENV: development
+      MYSQL_HOST: mysql_server
+      MYSQL_DATABASE: blog
+      MYSQL_USER: db-user
+      MYSQL_PASSWORD: testpass
+      MYSQL_PORT: 3306
+      MYSQL_CONNECTION_LIMIT: 10
+    depends_on:
+      - mysql_server
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+  
+volumes:
+  mysql-data:
+networks:
+  app-network:
